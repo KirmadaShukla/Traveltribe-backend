@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django
+*.log
+*.pot
+*.pyc
+*.pyo
+*.db
+*.sqlite3
+*.mo
+
+# Environment
+venv/
+.env
+.env.*
+
+# VSCode
+.vscode/
+
+# Migrations (optional, keep if you want to version them)
+# **/migrations/*
+# !**/migrations/__init__.py
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Database
+*.pgsql
+*.sqlite3
+*.db
+
+# Coverage
+htmlcov/
+.coverage
+.tox/
+
+# Pytest
+.pytest_cache/
+
+# Pip
+pip-log.txt
+pip-delete-this-directory.txt
+
+# MyPy
+.mypy_cache/
+.dmypy.json
+
+# Others
+*.bak
+*.swp
+*.swo
+.idea/
