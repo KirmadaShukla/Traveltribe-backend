@@ -11,6 +11,19 @@ class TripViewSet(viewsets.ModelViewSet):
     serializer_class = TripSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        print(request.data)
+        return Response({'message': 'Trip created successfully'}, status=response.status_code)
+
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        return Response({'message': 'Trip updated successfully'}, status=response.status_code)
+
+    def destroy(self, request, *args, **kwargs):
+        super().destroy(request, *args, **kwargs)
+        return Response({'message': 'Trip deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+
     def perform_create(self, serializer):
         serializer.save(creator=self.request.user)
 

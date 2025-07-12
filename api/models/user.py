@@ -1,6 +1,4 @@
-"""
-Defines the custom User model for TravelTribe.
-"""
+import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.core.validators import RegexValidator
@@ -27,7 +25,7 @@ class UserManager(BaseUserManager):
         return self.create_user(email, name, password, **extra_fields)
 
 class User(AbstractBaseUser, PermissionsMixin):
-    id = models.AutoField(primary_key=True)  # Unique ID for each user
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=100)
     phone = models.CharField(
@@ -61,7 +59,3 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
-
-    @property
-    def id(self):
-        return self.id
