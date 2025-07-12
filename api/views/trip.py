@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from ..models import Trip
 from ..serializers import TripSerializer
+from ..serializers import UserSerializer
 
 class TripViewSet(viewsets.ModelViewSet):
     queryset = Trip.objects.select_related('creator').prefetch_related('participants')
@@ -58,5 +59,31 @@ class TripViewSet(viewsets.ModelViewSet):
                 return Response({'error': 'User is not a participant of this trip'}, status=status.HTTP_400_BAD_REQUEST)
             trip.participants.remove(request.user)
             return Response({'message': 'Successfully left the trip'}, status=status.HTTP_200_OK)
+        except Trip.DoesNotExist:
+            return Response({'error': 'Trip not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['get'], url_path='participant-contact/(?P<user_id>[0-9a-f-]+)', permission_classes=[IsAuthenticated])
+    def participant_contact(self, request, pk=None, user_id=None):
+        try:
+            trip = Trip.objects.get(id=pk)
+            if request.user != trip.creator:
+                return Response({'error': 'Only the creator can view participant contact details.'}, status=status.HTTP_403_FORBIDDEN)
+            participant = trip.participants.filter(id=user_id).first()
+            if not participant:
+                return Response({'error': 'User is not a participant of this trip.'}, status=status.HTTP_404_NOT_FOUND)
+            serializer = UserSerializer(participant)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except Trip.DoesNotExist:
+            return Response({'error': 'Trip not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['get'], url_path='participants-list', permission_classes=[IsAuthenticated])
+    def participants_list(self, request, pk=None):
+        try:
+            trip = Trip.objects.get(id=pk)
+            if request.user != trip.creator:
+                return Response({'error': 'Only the creator can view the participants list.'}, status=status.HTTP_403_FORBIDDEN)
+            participants = trip.participants.all()
+            data = [{'id': str(p.id), 'name': p.name, 'email': p.email, 'phone': p.phone} for p in participants]
+            return Response(data, status=status.HTTP_200_OK)
         except Trip.DoesNotExist:
             return Response({'error': 'Trip not found'}, status=status.HTTP_404_NOT_FOUND)

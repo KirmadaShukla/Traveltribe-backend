@@ -3,6 +3,14 @@ from django.db import models
 from .user import User
 import uuid
 
+class TripParticipant(models.Model):
+    trip = models.ForeignKey('Trip', on_delete=models.CASCADE)
+    participant = models.ForeignKey('User', on_delete=models.CASCADE, db_column='participant_id')
+
+    class Meta:
+        unique_together = ('trip', 'participant')
+        db_table = 'api_trip_participant'
+
 class Trip(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     title = models.CharField(max_length=200)
@@ -11,7 +19,12 @@ class Trip(models.Model):
     end_date = models.DateField()
     description = models.TextField(blank=True)
     creator = models.ForeignKey(User, related_name='created_trips', on_delete=models.CASCADE)
-    participants = models.ManyToManyField(User, related_name='joined_trips', blank=True)
+    participants = models.ManyToManyField(
+        User,
+        through='TripParticipant',
+        related_name='joined_trips',
+        blank=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     is_completed = models.BooleanField(default=False)
 
