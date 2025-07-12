@@ -13,6 +13,7 @@ class Trip(models.Model):
     creator = models.ForeignKey(User, related_name='created_trips', on_delete=models.CASCADE)
     participants = models.ManyToManyField(User, related_name='joined_trips', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    is_completed = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.title} to {self.destination} by {self.creator.username}"
