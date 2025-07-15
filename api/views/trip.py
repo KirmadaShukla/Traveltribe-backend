@@ -55,7 +55,9 @@ class TripViewSet(viewsets.ModelViewSet):
     def join(self, request, pk=None):
         try:
             # Check if user is already a participant in any ongoing trip
-            ongoing_participation = Trip.objects.filter(participants=request.user, is_completed=False).exists()
+            ongoing_participation = Trip.objects.filter(
+                participants=request.user
+            ).exclude(status__in=["completed", "cancelled"]).exists()
             if ongoing_participation:
                 return Response({'error': 'You are already a participant in an ongoing trip. Leave it before joining another.'}, status=status.HTTP_400_BAD_REQUEST)
             trip = Trip.objects.get(id=pk)
