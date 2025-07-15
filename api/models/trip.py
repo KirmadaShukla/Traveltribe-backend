@@ -26,7 +26,20 @@ class Trip(models.Model):
         blank=True
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    is_completed = models.BooleanField(default=False)
+    budget = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Estimated total budget for the trip")
+    group_size = models.PositiveIntegerField(null=True, blank=True, help_text="Expected number of participants")
+    currency = models.CharField(max_length=10, null=True, blank=True, help_text="Currency for the budget, e.g., USD")
+    STATUS_CHOICES = [
+        ("planned", "Planned"),
+        ("ongoing", "Ongoing"),
+        ("completed", "Completed"),
+        ("cancelled", "Cancelled"),
+    ]
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="planned", help_text="Current status of the trip")
+    cover_image_url = models.URLField(max_length=500, null=True, blank=True, help_text="URL of the cover image stored in Cloudinary")
+    updated_at = models.DateTimeField(auto_now=True, help_text="Last updated timestamp")
+    is_public = models.BooleanField(default=True, help_text="Whether the trip is public or private")
+    interests = models.CharField(max_length=255, blank=True, help_text="Comma-separated interests or tags")
 
     def __str__(self):
         return f"{self.title} to {self.destination} by {self.creator.username}"
