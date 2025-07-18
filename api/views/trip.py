@@ -53,6 +53,14 @@ class TripViewSet(viewsets.ModelViewSet):
                 creator.trips_cancelled = max(0, creator.trips_cancelled - 1)
             if new_status == 'completed':
                 creator.trips_completed += 1
+                # Award points to all participants and the host
+                trip = serializer.instance
+                participants = list(trip.participants.all())
+                if creator not in participants:
+                    participants.append(creator)
+                for user in participants:
+                    user.points += 100  # Award 10 points
+                    user.save(update_fields=['points'])
             if new_status == 'cancelled':
                 creator.trips_cancelled += 1
             creator.save(update_fields=['trips_completed', 'trips_cancelled'])
@@ -130,6 +138,46 @@ class TripViewSet(viewsets.ModelViewSet):
             return Response(data, status=status.HTTP_200_OK)
         except Trip.DoesNotExist:
             return Response({'error': 'Trip not found'}, status=status.HTTP_404_NOT_FOUND)
+
+    def is_admin_or_creator(self, user, trip):
+        if user == trip.creator:
+            return True
+        from ..models.trip import TripParticipant
+        return TripParticipant.objects.filter(trip=trip, participant=user, role='admin').exists()
+
+    @action(detail=True, methods=['post'], url_path='kickout', permission_classes=[IsAuthenticated])
+    def kickout_participant(self, request, pk=None):
+        trip = self.get_object()
+        if not self.is_admin_or_creator(request.user, trip):
+            return Response({'error': 'Only the host or an admin can remove participants.'}, status=status.HTTP_403_FORBIDDEN)
+        user_id = request.data.get('user_id')
+        if not user_id:
+            return Response({'error': 'user_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        if str(trip.creator.id) == str(user_id):
+            return Response({'error': 'Host cannot be removed from the trip.'}, status=status.HTTP_400_BAD_REQUEST)
+        participant = trip.participants.filter(id=user_id).first()
+        if not participant:
+            return Response({'error': 'User is not a participant of this trip.'}, status=status.HTTP_404_NOT_FOUND)
+        trip.participants.remove(participant)
+        return Response({'message': 'Participant removed from the trip.'}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], url_path='make-admin', permission_classes=[IsAuthenticated])
+    def make_admin(self, request, pk=None):
+        trip = self.get_object()
+        if not self.is_admin_or_creator(request.user, trip):
+            return Response({'error': 'Only the host or an admin can promote participants to admin.'}, status=status.HTTP_403_FORBIDDEN)
+        user_id = request.data.get('user_id')
+        if not user_id:
+            return Response({'error': 'user_id is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        if str(trip.creator.id) == str(user_id):
+            return Response({'error': 'Host is already the admin of the trip.'}, status=status.HTTP_400_BAD_REQUEST)
+        from ..models.trip import TripParticipant
+        trip_participant = TripParticipant.objects.filter(trip=trip, participant_id=user_id).first()
+        if not trip_participant:
+            return Response({'error': 'User is not a participant of this trip.'}, status=status.HTTP_404_NOT_FOUND)
+        trip_participant.role = 'admin'
+        trip_participant.save(update_fields=['role'])
+        return Response({'message': 'Participant promoted to admin.'}, status=status.HTTP_200_OK)
 
     def _filter_trips(self, queryset, params):
         filter_map = {
