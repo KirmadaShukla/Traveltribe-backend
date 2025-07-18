@@ -9,6 +9,7 @@ from rest_framework.authtoken.models import Token
 from django.contrib.auth import authenticate
 from ..models import User
 from ..serializers import UserSerializer
+from api.serializers.user import UserDashboardSerializer
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -36,3 +37,10 @@ class LoginView(APIView):
             token, created = Token.objects.get_or_create(user=user)
             return Response({'token': token.key})
         return Response({'error': 'Invalid credentials'}, status=status.HTTP_401_UNAUTHORIZED)
+
+class UserDashboardView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        serializer = UserDashboardSerializer(request.user)
+        return Response(serializer.data)

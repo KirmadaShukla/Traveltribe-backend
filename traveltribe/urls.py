@@ -12,8 +12,8 @@ def api_info(request):
             'users': '/api/users/',
             'trips': '/api/trips/',
             'login': '/api/login/',
-            'jwt_login': '/api/jwt/login/',
-            'profile': '/api/profile/'
+            'jwt_login': '/api/users/jwt/login/',
+            'profile': '/api/users/profile/'
         },
         'status': 'running'
     })

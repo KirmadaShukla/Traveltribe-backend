@@ -1,6 +1,7 @@
+from django.urls import path, include
 
-from .user import urlpatterns as user_urlpatterns
-from .trip import urlpatterns as trip_urlpatterns
-from .review import urlpatterns as review_urlpatterns
-
-urlpatterns = user_urlpatterns + trip_urlpatterns + review_urlpatterns
+urlpatterns = [
+    path('review/', include('api.urls.review')),
+    path('trip/', include('api.urls.trip')),
+    path('user/', include('api.urls.user')),
+] 

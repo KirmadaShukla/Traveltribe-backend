@@ -34,6 +34,7 @@ class TripViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
+        old_status = instance.status
         data = request.data.copy()
         cover_image = request.FILES.get('cover_image')
         if cover_image:
@@ -42,6 +43,19 @@ class TripViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance, data=data, partial=partial)
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
+        # Update creator's dashboard fields if status changed
+        new_status = serializer.instance.status
+        creator = instance.creator
+        if old_status != new_status:
+            if old_status == 'completed':
+                creator.trips_completed = max(0, creator.trips_completed - 1)
+            if old_status == 'cancelled':
+                creator.trips_cancelled = max(0, creator.trips_cancelled - 1)
+            if new_status == 'completed':
+                creator.trips_completed += 1
+            if new_status == 'cancelled':
+                creator.trips_cancelled += 1
+            creator.save(update_fields=['trips_completed', 'trips_cancelled'])
         return Response(serializer.data)
 
     def destroy(self, request, *args, **kwargs):
@@ -66,6 +80,10 @@ class TripViewSet(viewsets.ModelViewSet):
             if request.user in trip.participants.all():
                 return Response({'error': 'User already joined this trip'}, status=status.HTTP_400_BAD_REQUEST)
             trip.participants.add(request.user)
+            # Update user's total_trips_joined
+            user = request.user
+            user.total_trips_joined = user.joined_trips.count()
+            user.save(update_fields=['total_trips_joined'])
             return Response({'message': 'Successfully joined the trip'}, status=status.HTTP_200_OK)
         except Trip.DoesNotExist:
             return Response({'error': 'Trip not found'}, status=status.HTTP_404_NOT_FOUND)
@@ -79,6 +97,10 @@ class TripViewSet(viewsets.ModelViewSet):
             if request.user not in trip.participants.all():
                 return Response({'error': 'User is not a participant of this trip'}, status=status.HTTP_400_BAD_REQUEST)
             trip.participants.remove(request.user)
+            # Update user's total_trips_joined
+            user = request.user
+            user.total_trips_joined = user.joined_trips.count()
+            user.save(update_fields=['total_trips_joined'])
             return Response({'message': 'Successfully left the trip'}, status=status.HTTP_200_OK)
         except Trip.DoesNotExist:
             return Response({'error': 'Trip not found'}, status=status.HTTP_404_NOT_FOUND)

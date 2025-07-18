@@ -52,6 +52,12 @@ class User(AbstractBaseUser, PermissionsMixin):
         help_text='Specific permissions for this user.',
         verbose_name='user permissions'
     )
+    trips_completed = models.PositiveIntegerField(default=0)
+    trips_cancelled = models.PositiveIntegerField(default=0)
+    total_trips_joined = models.PositiveIntegerField(default=0)
+    total_reviews_received = models.PositiveIntegerField(default=0)
+    total_reviews_given = models.PositiveIntegerField(default=0)
+    average_rating_received = models.FloatField(default=None, null=True, blank=True)
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
