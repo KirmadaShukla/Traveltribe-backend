@@ -8,6 +8,12 @@ from ..serializers import TripSerializer
 from ..serializers import UserSerializer
 from ..utils.cloudinary_utils import upload_image_to_cloudinary
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from api.models.trip import Trip
+from api.models.trip_interaction import TripLike, TripComment
 
 class TripViewSet(viewsets.ModelViewSet):
     queryset = Trip.objects.select_related('creator').prefetch_related('participants')
@@ -87,6 +93,9 @@ class TripViewSet(viewsets.ModelViewSet):
                 return Response({'error': 'Creator cannot join their own trip'}, status=status.HTTP_400_BAD_REQUEST)
             if request.user in trip.participants.all():
                 return Response({'error': 'User already joined this trip'}, status=status.HTTP_400_BAD_REQUEST)
+            # Enforce group_size limit
+            if trip.group_size is not None and trip.participants.count() >= trip.group_size:
+                return Response({'error': 'This trip has reached its participant limit.'}, status=status.HTTP_400_BAD_REQUEST)
             trip.participants.add(request.user)
             # Update user's total_trips_joined
             user = request.user

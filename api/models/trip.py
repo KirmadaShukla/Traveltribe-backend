@@ -32,6 +32,7 @@ class Trip(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     budget = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True, help_text="Estimated total budget for the trip")
+    likes_count = models.PositiveIntegerField(default=0, help_text="Number of likes for the trip")
     group_size = models.PositiveIntegerField(null=True, blank=True, help_text="Expected number of participants")
     currency = models.CharField(max_length=10, null=True, blank=True, help_text="Currency for the budget, e.g., USD")
     STATUS_CHOICES = [
@@ -47,7 +48,7 @@ class Trip(models.Model):
     interests = models.CharField(max_length=255, blank=True, help_text="Comma-separated interests or tags")
 
     def __str__(self):
-        return f"{self.title} to {self.destination} by {self.creator.username}"
+        return f"{self.title} to {self.destination} by {self.creator.email}"
 
     class Meta:
         indexes = [

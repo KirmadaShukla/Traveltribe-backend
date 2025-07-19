@@ -26,7 +26,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
     bio = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
-    is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
     trips_completed = models.PositiveIntegerField(default=0)
     trips_cancelled = models.PositiveIntegerField(default=0)
