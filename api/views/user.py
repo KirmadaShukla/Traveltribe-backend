@@ -10,6 +10,7 @@ from django.contrib.auth import authenticate
 from ..models import User
 from ..serializers import UserSerializer
 from api.serializers.user import UserDashboardSerializer
+from api.models.user import Address
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -26,6 +27,20 @@ class UserViewSet(viewsets.ModelViewSet):
         if self.action == 'create':  # Allow anyone to register
             return [AllowAny()]
         return [IsAuthenticated()]
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
+        address_data = validated_data.pop('address', None)
+        password = validated_data.pop('password')
+        user = User.objects.create_user(password=password, **validated_data)
+        if address_data:
+            Address.objects.create(user=user, **address_data)
+        headers = self.get_success_headers(serializer.data)
+        # Re-serialize to return the created user (without password)
+        response_serializer = self.get_serializer(user)
+        return Response(response_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
 class LoginView(APIView):
     permission_classes = [AllowAny]

@@ -34,6 +34,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     total_reviews_given = models.PositiveIntegerField(default=0)
     average_rating_received = models.FloatField(default=None, null=True, blank=True)
     points = models.PositiveIntegerField(default=0)
+    interest = models.CharField(max_length=255, blank=True, null=True, help_text='Comma-separated interests')
     objects = UserManager()
 
     USERNAME_FIELD = 'email'
@@ -41,3 +42,15 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.email
+
+class Address(models.Model):
+    user = models.ForeignKey('User', on_delete=models.CASCADE, related_name='addresses', db_column='user_id')
+    address_line1 = models.CharField(max_length=255)
+    address_line2 = models.CharField(max_length=255, blank=True, null=True)
+    country = models.CharField(max_length=100)
+    state = models.CharField(max_length=100)
+    city = models.CharField(max_length=100)
+    pincode = models.CharField(max_length=20)
+
+    def __str__(self):
+        return f"{self.address_line1}, {self.city}, {self.state}, {self.country} ({self.pincode})"

@@ -4,6 +4,12 @@ from api.models.user import User
 from api.models.trip import Trip
 from api.models.review import Review
 from django.db import models
+from api.models.user import Address
+
+class AddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Address
+        fields = ['address_line1', 'address_line2', 'country', 'state', 'city', 'pincode']
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, error_messages={
@@ -15,15 +21,12 @@ class UserSerializer(serializers.ModelSerializer):
     name = serializers.CharField(required=True, error_messages={
         'required': 'Name is required.'
     })
+    interest = serializers.CharField(required=False, allow_blank=True)
+    address = AddressSerializer(write_only=True, required=False)
 
     class Meta:
         model = User
-        fields = ['id', 'email', 'name', 'phone', 'bio', 'date_joined', 'password']
-
-    def create(self, validated_data):
-        password = validated_data.pop('password')
-        user = User.objects.create_user(password=password, **validated_data)
-        return user
+        fields = ['id', 'email', 'name', 'phone', 'bio', 'date_joined', 'password', 'interest', 'address']
 
 class UserDashboardSerializer(serializers.ModelSerializer):
     trips_completed = serializers.SerializerMethodField()
