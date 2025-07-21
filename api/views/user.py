@@ -82,5 +82,14 @@ class GoogleLoginView(APIView):
             return Response({'error': 'No email in Google token'}, status=status.HTTP_400_BAD_REQUEST)
         # Find or create user
         user, created = User.objects.get_or_create(email=email, defaults={'name': name})
-        token, _ = Token.objects.get_or_create(user=user)
-        return Response({'token': token.key, 'email': email, 'name': name})
+        # Generate JWT tokens
+        from rest_framework_simplejwt.tokens import RefreshToken
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
+        return Response({
+            'access': access_token,
+            'refresh': refresh_token,
+            'email': email,
+            'name': name
+        })

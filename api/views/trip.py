@@ -5,7 +5,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from ..models import Trip
 from ..serializers import TripSerializer
-from ..serializers import UserSerializer
+from ..serializers import UserSerializer, FeaturedTripSerializer
 from ..utils.cloudinary_utils import upload_image_to_cloudinary
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.views import APIView
@@ -21,6 +21,9 @@ class TripViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticatedOrReadOnly]
 
     def create(self, request, *args, **kwargs):
+        # Debug logging for incoming data
+        print('FILES:', request.FILES)
+        print('DATA:', request.data)
         # Block creation if user has any trip not completed or cancelled
         ongoing_trip_exists = Trip.objects.filter(creator=request.user).exclude(status__in=["completed", "cancelled"]).exists()
         if ongoing_trip_exists:
@@ -213,3 +216,10 @@ class TripViewSet(viewsets.ModelViewSet):
         page = paginator.paginate_queryset(queryset, request)
         serializer = self.get_serializer(page, many=True)
         return paginator.get_paginated_response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='featured')
+    def featured(self, request):
+        # Return top 10 public trips ordered by likes_count and start_date
+        trips = Trip.objects.filter(is_public=True).order_by('-likes_count', 'start_date')[:10]
+        serializer = FeaturedTripSerializer(trips, many=True)
+        return Response(serializer.data)
