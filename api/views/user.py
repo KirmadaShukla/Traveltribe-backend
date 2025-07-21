@@ -11,6 +11,8 @@ from ..models import User
 from ..serializers import UserSerializer
 from api.serializers.user import UserDashboardSerializer
 from api.models.user import Address
+import requests
+from django.conf import settings
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -47,7 +49,7 @@ class LoginView(APIView):
     def post(self, request):
         email = request.data.get('email')
         password = request.data.get('password')
-        user = authenticate(request, username=email, password=password)
+        user = authenticate(request, email=email, password=password)
         if user is not None:
             token, created = Token.objects.get_or_create(user=user)
             return Response({'token': token.key})
@@ -59,3 +61,26 @@ class UserDashboardView(APIView):
     def get(self, request):
         serializer = UserDashboardSerializer(request.user)
         return Response(serializer.data)
+
+class GoogleLoginView(APIView):
+    permission_classes = [AllowAny]
+    def post(self, request):
+        id_token = request.data.get('id_token')
+        if not id_token:
+            return Response({'error': 'No id_token provided'}, status=status.HTTP_400_BAD_REQUEST)
+        # Verify the token with Google
+        google_response = requests.get(
+            'https://oauth2.googleapis.com/tokeninfo',
+            params={'id_token': id_token}
+        )
+        if google_response.status_code != 200:
+            return Response({'error': 'Invalid id_token'}, status=status.HTTP_400_BAD_REQUEST)
+        user_info = google_response.json()
+        email = user_info.get('email')
+        name = user_info.get('name', email)
+        if not email:
+            return Response({'error': 'No email in Google token'}, status=status.HTTP_400_BAD_REQUEST)
+        # Find or create user
+        user, created = User.objects.get_or_create(email=email, defaults={'name': name})
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response({'token': token.key, 'email': email, 'name': name})

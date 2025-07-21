@@ -1,7 +1,7 @@
 
 from django.urls import path, include
 from rest_framework.routers import SimpleRouter
-from ..views import UserViewSet, user_profile, LoginView, UserDashboardView
+from ..views import UserViewSet, user_profile, LoginView, UserDashboardView, GoogleLoginView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 router = SimpleRouter()
@@ -13,5 +13,6 @@ urlpatterns = [
     path('login/', LoginView.as_view(), name='user_login'),
     path('jwt/login/', TokenObtainPairView.as_view(), name='jwt_login'),
     path('jwt/refresh/', TokenRefreshView.as_view(), name='jwt_refresh'),
+    path('google-login/', GoogleLoginView.as_view(), name='google_login'),
     path('', include(router.urls)),
 ]
