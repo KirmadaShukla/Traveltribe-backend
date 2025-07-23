@@ -1,10 +1,12 @@
 
+from datetime import date
+import random
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from ..models import Trip
-from ..serializers import TripSerializer
+from ..serializers import TripSerializer, UpcomingTripSerializer
 from ..serializers import UserSerializer, FeaturedTripSerializer
 from ..utils.cloudinary_utils import upload_image_to_cloudinary
 from rest_framework.pagination import PageNumberPagination
@@ -222,4 +224,17 @@ class TripViewSet(viewsets.ModelViewSet):
         # Return top 10 public trips ordered by likes_count and start_date
         trips = Trip.objects.filter(is_public=True).order_by('-likes_count', 'start_date')[:10]
         serializer = FeaturedTripSerializer(trips, many=True)
+        return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='upcoming')
+    def upcoming(self, request):
+        today = date.today()
+        upcoming_trips = Trip.objects.filter(start_date__gte=today, cover_image_url__isnull=False).exclude(cover_image_url__exact='')
+        
+        if upcoming_trips.count() > 5:
+            random_trips = random.sample(list(upcoming_trips), 5)
+        else:
+            random_trips = upcoming_trips
+            
+        serializer = UpcomingTripSerializer(random_trips, many=True)
         return Response(serializer.data)
