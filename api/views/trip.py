@@ -9,6 +9,7 @@ from ..models import Trip
 from ..serializers import TripSerializer, UpcomingTripSerializer
 from ..serializers import UserSerializer, FeaturedTripSerializer
 from ..utils.cloudinary_utils import upload_image_to_cloudinary
+from ..utils.gemini_utils import get_recommendations                              
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -237,4 +238,20 @@ class TripViewSet(viewsets.ModelViewSet):
             random_trips = upcoming_trips
             
         serializer = UpcomingTripSerializer(random_trips, many=True)
+        return Response(serializer.data)
+    @action(detail=False, methods=['get'], url_path='recommend')
+    def recommend(self, request):
+        user = request.user
+        user_interest = user.interest
+        if not user_interest:
+            return Response({'error': 'User has no interests set.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        all_trips = Trip.objects.exclude(creator=user)
+        trip_interests = [trip.interests for trip in all_trips if trip.interests]
+        
+        recommended_trip_interests = get_recommendations(user_interest, trip_interests)
+        
+        recommended_trips = all_trips.filter(interests__in=recommended_trip_interests)
+        
+        serializer = TripSerializer(recommended_trips, many=True)
         return Response(serializer.data)
