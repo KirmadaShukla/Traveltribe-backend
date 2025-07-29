@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from ..models import Trip
-from ..serializers import TripSerializer, UpcomingTripSerializer
+from ..serializers import TripSerializer, UpcomingTripSerializer, RecommendedTripSerializer
 from ..serializers import UserSerializer, FeaturedTripSerializer
 from ..utils.cloudinary_utils import upload_image_to_cloudinary
 from ..utils.gemini_utils import get_recommendations                              
@@ -15,6 +15,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from django.db.models import Q
 from api.models.trip import Trip
 from api.models.trip_interaction import TripLike, TripComment
 
@@ -239,19 +240,30 @@ class TripViewSet(viewsets.ModelViewSet):
             
         serializer = UpcomingTripSerializer(random_trips, many=True)
         return Response(serializer.data)
-    @action(detail=False, methods=['get'], url_path='recommend')
+    @action(detail=False, methods=['get'], url_path='recommend', permission_classes=[IsAuthenticated])
     def recommend(self, request):
         user = request.user
         user_interest = user.interest
+        print("UserInterest",request.user)
         if not user_interest:
             return Response({'error': 'User has no interests set.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        all_trips = Trip.objects.exclude(creator=user)
+        all_trips = Trip.objects.exclude(creator=user).filter(status__in=['planned', 'upcoming'])
         trip_interests = [trip.interests for trip in all_trips if trip.interests]
         
         recommended_trip_interests = get_recommendations(user_interest, trip_interests)
+
+        print("Interest",recommended_trip_interests)
+        if not recommended_trip_interests:
+            return Response([], status=status.HTTP_200_OK)
+
+        # Build a query to find trips that contain any of the recommended interests
+        query = Q()
+        for interest in recommended_trip_interests:
+            query |= Q(interests__icontains=interest)
+            
+        # Filter the trips using the constructed query and remove duplicates
+        recommended_trips = all_trips.filter(query).distinct()
         
-        recommended_trips = all_trips.filter(interests__in=recommended_trip_interests)
-        
-        serializer = TripSerializer(recommended_trips, many=True)
+        serializer = RecommendedTripSerializer(recommended_trips, many=True)
         return Response(serializer.data)

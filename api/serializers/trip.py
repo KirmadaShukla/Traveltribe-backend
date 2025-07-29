@@ -38,3 +38,9 @@ class UpcomingTripSerializer(serializers.ModelSerializer):
         model = Trip
         fields = ['id', 'title', 'destination', 'start_date', 'end_date', 'description', 
                   'created_at', 'budget', 'group_size', 'currency', 'cover_image_url', 'updated_at', 'is_public', 'interests']
+
+class RecommendedTripSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Trip
+        fields = ['id', 'title', 'destination', 'start_date', 'end_date', 'description', 
+                  'created_at', 'budget', 'group_size', 'currency', 'cover_image_url', 'updated_at', 'interests']

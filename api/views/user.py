@@ -6,7 +6,7 @@ from rest_framework import status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework.authtoken.models import Token
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate, login
 from ..models import User
 from ..serializers import UserSerializer
 from api.serializers.user import UserDashboardSerializer
@@ -64,6 +64,7 @@ class UserDashboardView(APIView):
 
 class GoogleLoginView(APIView):
     permission_classes = [AllowAny]
+    authentication_classes = []
     def post(self, request):
         id_token = request.data.get('id_token')
         if not id_token:
@@ -76,12 +77,22 @@ class GoogleLoginView(APIView):
         if google_response.status_code != 200:
             return Response({'error': 'Invalid id_token'}, status=status.HTTP_400_BAD_REQUEST)
         user_info = google_response.json()
+        print("user_onfo",user_info)
         email = user_info.get('email')
         name = user_info.get('name', email)
         if not email:
             return Response({'error': 'No email in Google token'}, status=status.HTTP_400_BAD_REQUEST)
         # Find or create user
-        user, created = User.objects.get_or_create(email=email, defaults={'name': name})
+        user, created = User.objects.update_or_create(
+            email=email,
+            defaults={'name': name}
+        )
+        
+        # Log the user in
+        # Manually set the backend attribute to prevent a 500 error
+        user.backend = 'django.contrib.auth.backends.ModelBackend'
+        login(request, user)
+
         # Generate JWT tokens
         from rest_framework_simplejwt.tokens import RefreshToken
         refresh = RefreshToken.for_user(user)
