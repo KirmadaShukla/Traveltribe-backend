@@ -15,7 +15,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from django.db.models import Q
+from django.db.models import Q, Count
 from api.models.trip import Trip
 from api.models.trip_interaction import TripLike, TripComment
 
@@ -267,3 +267,9 @@ class TripViewSet(viewsets.ModelViewSet):
         
         serializer = RecommendedTripSerializer(recommended_trips, many=True)
         return Response(serializer.data)
+
+
+class PopularCitiesView(APIView):
+    def get(self, request):
+        popular_cities = Trip.objects.values('destination').annotate(trip_count=Count('id')).order_by('-trip_count')[:10]
+        return Response(popular_cities)
