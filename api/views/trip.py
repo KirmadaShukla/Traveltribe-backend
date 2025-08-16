@@ -9,7 +9,8 @@ from ..models import Trip
 from ..serializers import TripSerializer, UpcomingTripSerializer, RecommendedTripSerializer
 from ..serializers import UserSerializer, FeaturedTripSerializer
 from ..utils.cloudinary_utils import upload_image_to_cloudinary
-from ..utils.gemini_utils import get_recommendations                              
+from ..utils.gemini_utils import get_recommendations
+from ..pagination import StandardResultsSetPagination
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -23,6 +24,7 @@ class TripViewSet(viewsets.ModelViewSet):
     queryset = Trip.objects.select_related('creator').prefetch_related('participants')
     serializer_class = TripSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
+    pagination_class = StandardResultsSetPagination
 
     def create(self, request, *args, **kwargs):
         # Debug logging for incoming data
@@ -240,11 +242,23 @@ class TripViewSet(viewsets.ModelViewSet):
             
         serializer = UpcomingTripSerializer(random_trips, many=True)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['get'], url_path='explore')
+    def explore(self, request):
+        today = date.today()
+        queryset = Trip.objects.filter(start_date__gte=today, is_public=True).order_by('start_date')
+        
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
     @action(detail=False, methods=['get'], url_path='recommend', permission_classes=[IsAuthenticated])
     def recommend(self, request):
         user = request.user
         user_interest = user.interest
-        print("UserInterest",request.user)
         if not user_interest:
             return Response({'error': 'User has no interests set.'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -253,7 +267,6 @@ class TripViewSet(viewsets.ModelViewSet):
         
         recommended_trip_interests = get_recommendations(user_interest, trip_interests)
 
-        print("Interest",recommended_trip_interests)
         if not recommended_trip_interests:
             return Response([], status=status.HTTP_200_OK)
 
