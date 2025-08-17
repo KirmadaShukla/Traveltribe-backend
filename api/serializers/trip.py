@@ -1,6 +1,6 @@
 
 from rest_framework import serializers
-from ..models import Trip, User
+from ..models import Trip, User, TripLike
 from .user import UserSerializer
 
 class TripSerializer(serializers.ModelSerializer):
@@ -54,3 +54,18 @@ class TrendingDestinationSerializer(serializers.Serializer):
     destination = serializers.CharField()
     trip_count = serializers.IntegerField()
     cover_image_url = serializers.URLField()
+
+class ExploreTripSerializer(serializers.ModelSerializer):
+    creator = UserSerializer(read_only=True)
+    is_liked = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Trip
+        fields = ['id', 'title', 'destination', 'start_date', 'end_date', 'description', 
+                  'created_at', 'budget', 'cover_image_url', 'updated_at', 'is_public', 'interests', 'likes_count', 'creator', 'is_liked']
+
+    def get_is_liked(self, obj):
+        user = self.context['request'].user
+        if user.is_authenticated:
+            return TripLike.objects.filter(trip=obj, user=user).exists()
+        return False

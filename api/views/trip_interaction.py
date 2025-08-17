@@ -51,5 +51,12 @@ class TripCommentViewSet(viewsets.ModelViewSet):
     serializer_class = TripCommentSerializer
     permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        trip_id = self.request.query_params.get('trip_id')
+        if trip_id:
+            queryset = queryset.filter(trip_id=trip_id)
+        return queryset
+
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user) 
+        serializer.save(user=self.request.user)
